@@ -65,10 +65,6 @@ def getCorefSpan(span,tokens):
                 coref_list.append(list(range(idx,idx+span_len)))
         return coref_list
 
-
-
-
-
 def generateCorefList(d):
     tokens = list(d['token'])
     tokens = list(map(fixchar, tokens))
@@ -196,33 +192,10 @@ def generateCorefList(d):
     #     print(d['id'])
     return d
 
-def to_corefrel(path):
-    pass
-       # with open("dataset/dev_rev.json", 'r') as f:
-    #     rev_dev = json.load(f)
-    # with open("dataset/test_rev.json", 'r') as f:
-    #     rev_test = json.load(f)
-
 if __name__=='__main__':
     with open('../dataset/tacred/test.json') as infile:
         datas = json.load(infile)
-    # for d in datas:
-    #     if d['id']=='61b3a5f2e8ee8f221c52':
-    # for d in datas:
-    #     # if d['id'] in['61b3a65fb93978acb265','61b3a65fb9709f78e9cd','61b3a65fb99dbb2d33be','61b3a65fb9729af2f3b8','61b3a65fb9729af2f3b8','61b3a65fb9dcffee889e','61b3a65fb98ebbe3ab8e'
-    #     # '61b3aeaebf3c176aa36f',
-    #     # '61b3a65fb9dd273f3f61',
-    #     # '61b3a65fb9ccae3606d6',
-    #     # '61b3a65fb952c3edbfd5',
-    #     # '61b3a65fb9f4911c8dd7',
-    #     # '61b3a65fb9ccb420e401',
-    #     # '61b3a65fb9276df99b6d',
-    #     # '61b3a65fb91b48b1df87','61b3a65fb9a399f89cb6','61b3a65fb9d584e5fe98']:
-    #     generateCorefList(d)
     for d in datas:
-        d['token']="John and his wife Lucy have lived here for more than 30 years, together with Lucy's father Ivan."
         generateCorefList(d)
-    # with fu.ProcessPoolExecutor() as excutor:
-    #     datas=list(excutor.map(generateCorefList, datas))
-    # with open('train_rev_coref.json','w') as f:
-    #     json.dump(datas,f)
+    with open('train_rev_coref.json','w') as f:
+        json.dump(datas,f)

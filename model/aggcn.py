@@ -177,92 +177,6 @@ class GCNRelationModel(nn.Module):
         # l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = words.shape[1]
         batchsize = words.shape[0]
-
-        # subj_ids= [i.nonzero().squeeze().numpy().reshape(-1) for i in ((subj_pos == 0).mul(~masks))]
-        # obj_ids = [i.nonzero().squeeze().numpy().reshape(-1) for i in ((obj_pos == 0).mul(~masks))]
-        # #l:[sent_size,words_size]
-        # def inputs_to_tree_reps(head,deprel,l):
-        #     trees = [head_to_tree(head[i],deprel[i],l[i],subj_ids[i],obj_ids[i]) for i in range(len(l))]
-        #     adj=[]
-        #     rel=[]
-        #     domain=[]
-        #     domain_id=[]
-        #     s_pos=[]
-        #     o_pos=[]
-        #     sdp=[]
-        #     dep=[]
-        #     for tree in trees:
-        #         #d, a, r, s, o, sd = tree_to_adj(maxlen, tree, directed=False)
-        #         d, a, r ,do,di= tree_to_adj(maxlen, tree, directed=False)
-        #         dep.append(d.reshape(1, maxlen, maxlen))
-        #         adj.append(a.reshape(1, maxlen, maxlen))
-        #         rel.append(r.reshape(1, maxlen, maxlen))
-        #         domain.append(do.reshape(1,maxlen,maxlen))
-        #         domain_id.append(di.reshape(1,maxlen,maxlen))
-        #         #s_pos.append(s.reshape(1, maxlen))
-        #         #o_pos.append(o.reshape(1, maxlen))
-        #         #sdp.append(sd.reshape(1, maxlen))
-        #     dep = np.concatenate(dep, axis=0)
-        #     dep = torch.from_numpy(dep)
-        #     adj = np.concatenate(adj, axis=0)
-        #     adj = torch.from_numpy(adj)
-        #     # adj = torch.from_numpy(adj.repeat(len(range(torch.cuda.device_count()))),1)
-        #     rel = np.concatenate(rel, axis=0)
-        #     rel = torch.from_numpy(rel)
-        #     domain = np.concatenate(domain, axis=0)
-        #     domain = torch.from_numpy(domain)
-        #     domain_id = np.concatenate(domain_id, axis=0)
-        #     domain_id = torch.from_numpy(domain_id)
-        #     #s_pos = np.concatenate(s_pos, axis=0)
-        #     #s_pos = torch.from_numpy(s_pos)
-        #     #o_pos = np.concatenate(o_pos, axis=0)
-        #     #o_pos = torch.from_numpy(o_pos)
-        #     #sdp = np.concatenate(sdp, axis=0)
-        #     #sdp = torch.from_numpy(sdp)
-        #     # rel = torch.from_numpy(rel.repeat(len(range(torch.cuda.device_count()))),1)
-        #     if self.opt['cuda']:
-        #         #return dep.cuda(), adj.cuda(), rel.cuda(), s_pos.cuda(), o_pos.cuda(), sdp.cuda()
-        #         return dep.cuda(), adj.cuda(), rel.cuda(),domain.cuda(),domain_id.cuda()
-        #     else:
-        #         #return dep, adj, rel, s_pos, o_pos, sdp
-        #         return dep, adj, rel,domain,domain_id
-        #
-        #
-        #
-        #
-        # def adj2globaladj(adj, maxlen):
-        #     local_adj = adj
-        #     for i in range(maxlen):
-        #         temp = local_adj.bmm(adj)
-        #         local_mask = (local_adj == 0).mul(temp != 0)
-        #         if local_mask.sum() == 0:
-        #             return local_adj
-        #         else:
-        #             local_adj = local_adj.masked_fill(local_mask, i)
-        #
-        # def geodistribute(p, adj):
-        #     return torch.pow(p, adj.double()).float()
-
-        #dep, adj, rel, s_pos, o_pos, sdp = inputs_to_tree_reps(head.data, deprel.data, l)
-        # dep, adj, rel,domain,domain_id= inputs_to_tree_reps(head.data, deprel.data, l)
-        # del head, deprel
-        # batchsize=words.shape[0]
-        # outputs=[]
-        # inputsf=[]
-        # i=0
-        # sdp_mask = (sdp_mask != 1).unsqueeze(-1)
-        # max_size=64
-        # while(batchsize>max_size*i):
-        #     inputsf.append(tuple([f[max_size*i:min(max_size*(i+1),batchsize)] for f in list(inputs[:-1])]))
-        #     i=i+1
-        # for inputf in inputsf:
-        #     words, _, _, _, _, _, _, adj, _, _, _, _, _, _, _ = inputf
-        #     mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
-        #     aspect_h, pool_mask, embedding_output=self.gcn(inputf,mask)
-        #     outputs.append(aspect_h)
-        #
-        # aspect_h=torch.cat(outputs,dim=0)
-        # no connection,not in the dependency tree
         input = inputs[:-1]
         # sdp_mask = (sdp_mask != 0).unsqueeze(1)
         mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)  #
@@ -270,44 +184,12 @@ class GCNRelationModel(nn.Module):
         aspect_h, pool_mask, embedding_output = self.gcn(input, mask)
         aspect_subj_mask = ((subj_mask != 0).unsqueeze(-1)) | mask
         aspect_obj_mask = ((obj_mask != 0).unsqueeze(-1)) | mask
-        # aspect_subj_mask = ((subj_mask!= 0).unsqueeze(-1)) | sdp_mask
-        # aspect_obj_mask = ((obj_mask!= 0).unsqueeze(-1)) | sdp_mask
-        # aspect_subj = pool(aspect_h, aspect_subj_mask, type="max")
-        # aspect_obj = pool(aspect_h, aspect_obj_mask, type="max")
-
-        # globaladj = adj2globaladj(adj, maxlen)
-        # geoadj = geodistribute(0.5, globaladj)
-        # print('classifier:'+str(torch.cuda.memory_allocated()))
-
-
-
-        # poolingkk
         pool_type = self.opt['pooling']
-        # subj_mask, obj_mask = subj_pos.eq(0).eq(0).unsqueeze(2), obj_pos.eq(0).eq(0).unsqueeze(2)  # invert mask
-
-        #sdp_mask=(sdp_mask&subj_mask&obj_mask)|mask
-        # subj_mask = subj_mask | mask
-        # obj_mask = obj_mask | mask
-        # subj_mask = (~pool_mask).mul(~subj_mask)
-        # obj_mask = (~pool_mask).mul(~obj_mask)
-
-        #lab_eff,lab_num=self.calceffect(embedding_output,h,clspara,mlppara,labels,pool_mask)
-        # imps=[]
-        # for i in range(batchsize):
-        #     imps.append(self.analyseimporttance(clspara,mlppara,embedding_output,labels,pool_mask,i))
         aspect_h_pool = aspect_h.masked_fill(mask, -constant.INFINITY_NUMBER).max(dim=1)[0]
-        #aspect_h_pool = torch.where(aspect_h_pool<-1e11,torch.zeros_like(aspect_h_pool),aspect_h_pool)
         aspect_subj = aspect_h.masked_fill(aspect_subj_mask, -constant.INFINITY_NUMBER).max(dim=1)[0]
         aspect_obj = aspect_h.masked_fill(aspect_obj_mask, -constant.INFINITY_NUMBER).max(dim=1)[0]
         aspect_output = self.reldropout(self.global_rel_proj(torch.cat((aspect_h_pool, aspect_subj, aspect_obj), dim=-1)))
-        #aspect_output=F.relu(aspect_direct_output)
-        #aspect_output = self.relproj(torch.cat((aspect_h_pool, aspect_subj, aspect_obj), dim=-1))
-
         aspect_dom_h = aspect_h.unsqueeze(2).repeat(1,1,domain.shape[-1],1).masked_fill(domain.unsqueeze(-1)==0,-constant.INFINITY_NUMBER).max(dim=1)[0]
-        #aspect_dom_h = torch.where(aspect_h_pool<-1e11,torch.zeros_like(aspect_h_pool),aspect_h_pool).unsqueeze(1).repeat(1,domain.shape[-1],1)
-        #aspect_dom_h = torch.where(laspect_dom_h < -1e11, torch.zeros_like(aspect_dom_h), aspect_dom_h)
-        #aspect_dom_h_pool=aspect_dom_h.mean(dim=1)
-        #aspect_dom_h = aspect_h_pool.unsqueeze(dim=1).repeat(1,domain.shape[-1],1)
         aspect_dom_subj = aspect_h.unsqueeze(2).repeat(1, 1,domain_subj.shape[-1], 1).masked_fill(domain_subj.unsqueeze(-1)==0,-constant.INFINITY_NUMBER).max(dim=1)[0]
         aspect_dom_obj = aspect_h.unsqueeze(2).repeat(1, 1,domain_obj.shape[-1], 1).masked_fill(domain_obj.unsqueeze(-1)==0,-constant.INFINITY_NUMBER).max(dim=1)[0]
         aspect_rel_input = self.relproj(torch.cat((aspect_dom_h,aspect_dom_subj,aspect_dom_obj),dim=-1))
@@ -317,44 +199,11 @@ class GCNRelationModel(nn.Module):
         aspect_reason_output,domain_len_mask = self.reason_with_rnn(aspect_rel_input,sdp_domain,batchsize)
         aspect_reason_output = self.reasondropout(aspect_reason_output)
         aspect_reason_output = order_mm.transpose(-1,0).mm(aspect_reason_output.reshape(batchsize,-1)).reshape(batchsize,self.opt['hidden_dim'])
-        # domain_len_mask=order_mm.transpose(-1,0).mm(domain_len_mask.float())
-        # aspect_h_pool=pool(aspect_h,mask)
-        # aspect_subj=pool(aspect_h,aspect_subj_mask)
-        # aspect_obj=pool(aspect_h,aspect_obj_mask)
-
-
-
-        # sdp_mask=(sdp_mask.unsqueeze(-1)==0)
-        # h_out=aspect_h.masked_fill(sdp_mask,-constant.INFINITY_NUMBER).max(dim=1)[0]
-        # h_out = absMaxpool(aspect_h,sdp_mask,dim=1)
-        # h_abs = torch.abs(aspect_h.masked_fill(sdp_mask.unsqueeze(-1) == 0, 0)).max(dim=1)[0]
-        # h_out=torch.where(h_abs>h_max,-h_abs,h_max)
-        # batch_map=(batch_map==0).unsqueeze(-1)
-        #aspect_reason_output = aspect_reason_output.masked_fill(domain_len_mask==1, -constant.INFINITY_NUMBER)
-        #aspect_fuse_output = torch.cat((aspect_output.unsqueeze(0),aspect_reason_output.unsqueeze(0)),dim=0).max(dim=0)[0]
         aspect_fuse_output=self.mlp(torch.cat((aspect_reason_output,aspect_output),dim=-1))
-        # aspect_fuse_output = self.mlp(aspect_fuse_output)
         aspect_fuse_output=aspect_output+aspect_fuse_output
         batch_map = (batch_map == 0).unsqueeze(-1)
         h_out = aspect_fuse_output.unsqueeze(0).repeat(batch_map.shape[0],1,1).masked_fill(batch_map,-constant.INFINITY_NUMBER).max(dim=1)[0]
 
-
-        # h_out=absMaxpool(h_out,batch_map,dim=1)
-        # masked_fill(batch_map,-constant.INFINITY_NUMBER).max(dim=1)[0]
-        # h_out_abs = torch.abs(h_out).unsqueeze(0).repeat(batch_map.shape[0], 1, 1).masked_fill(batch_map, -constant.INFINITY_NUMBER).max(dim=1)[0]
-        # h_out = torch.where(h_out_abs > h_out_max, -h_out_abs, h_out_max)
-        #h_out = batch_map.mm(aspect_h.reshape(batch_map.shape[-1],-1)).reshape(batch_map.shape[0],maxlen,-1)
-        # subj=batch_map.mm(aspect_subj.reshape(batch_map.shape[-1],-1)).reshape(batch_map.shape[0],-1)
-        # obj=batch_map.mm(aspect_obj.reshape(batch_map.shape[-1],-1)).reshape(batch_map.shape[0],-1)
-        #sdp_mask=(batch_map.mm(sdp_mask.float())==0).unsqueeze(-1)
-        #sdp_mask = (batch_map.mm(sdp_mask.float()) == 1).unsqueeze(1)
-        #attn=self.global_attn(h,self.lab_emb,sdp_mask).unsqueeze(-1)
-        #h_out = pool(h, sdp_mask, type='max')
-        #w_h, subj, obj = self.sentattn(h, subj_mask, obj_mask, pool_mask)
-        # h_out=attn.mul(h).sum(dim=1)
-        # outputs = torch.cat([h_out, subj, obj], dim=1)
-        # outputs = self.out_mlp(h_out)
-        # logits=outputs.mm(self.lab_emb.transpose(-1,-2))
         return h_out,aspect_h_pool
 
 
@@ -406,7 +255,6 @@ class AGGCN(nn.Module):
         self.aggregate_W = nn.Linear(len(self.layers) * self.mem_dim, self.mem_dim)
 
         self.attn = MultiHeadAttention(self.heads, self.mem_dim).cuda()
-        #self.global_attn=GlobalAttention(self.mem_dim).cuda()
 
     # def encode_with_rnn(self, rnn_inputs, masks, batch_size):
     #     tensor_len = rnn_inputs.shape[1]
@@ -430,18 +278,10 @@ class AGGCN(nn.Module):
         if len(words.shape)<2:
             words=words.unsqueeze(0)
         src_mask = (words != constant.PAD_ID).unsqueeze(-2)
-        # word_embs = self.emb(words)
-        # rel=torch.abs(rel)
         word_embs=self.albert(words,attention_mask=(src_mask.squeeze()))[0]
-        #word_embs=torch.ones((batchsize,words.size(1),1024)).cuda()
         word_embs=bias_mm.bmm(word_embs)
         rel_embs = self.rel_emb(deprel)
-        # front_dir = self.dir_emb(torch.zeros(rel_embs.shape[0], rel_embs.shape[1]).long().cuda())
-        # back_dir = self.dir_emb(torch.ones(rel_embs.shape[0], rel_embs.shape[1]).long().cuda())
-        # front_rel_embs = torch.cat([front_dir, rel_embs], dim=-1)
-        # back_rel_embs = torch.cat([back_dir, rel_embs], dim=-1)
         embs = [word_embs]
-        # domain = domain.unsqueeze(-1)==0
 
         if self.opt['pos_dim'] > 0:
             embs += [self.pos_emb(pos)]
@@ -451,81 +291,18 @@ class AGGCN(nn.Module):
             embs += [self.ner_emb(ner)]
         embs = torch.cat(embs, dim=2)
         embs = self.in_drop(embs)
-        # if self.opt.get('rnn', False):
-        # embs = self.input_W_R(embs)
-        #gcn_inputs = self.rnn_drop(self.encode_with_rnn(embs, masks, words.shape[0]))
-        # else:
-        #     gcn_inputs = embs
         gcn_inputs = self.input_W_G(embs)
-        # emb-rnn+fnn->gcn-input
         layer_list = []  # layer_output
         outputs = gcn_inputs
-        # for i in range(len(self.layers)):
-        #     if i < 2:
-        #         outputs = self.layers[i](adj, outputs)
-        #         layer_list.append(outputs)
-        #     else:
-        #         attn_tensor = self.attn(outputs, outputs, adj,src_mask)
-        #         attn_adj_list = [attn_adj.squeeze(1) for attn_adj in torch.split(attn_tensor, 1, dim=1)]
-        #         outputs = self.layers[i](attn_adj_list, outputs)
-        #         layer_list.append(outputs)
-        #
-        # aggregate_out = torch.cat(layer_list, dim=2)
-        # dcgcn_output = self.aggregate_W(aggregate_out)
-        # print('aggcn:'+str(torch.cuda.memory_allocated()))
         domain=domain.float()
 
         domain_mask=domain.bmm(domain.transpose(-1,-2))!=0
         domain_mask=domain_mask.masked_fill(torch.eye(domain_mask.shape[-1]).unsqueeze(0).cuda()==1,0)
         for i in range(len(self.layers)):
-            # outputs = self.layers[i](adj, outputs)  # gcl
-            # layer_list.append(outputs)
-            # if i < 2:
-            #     outputs = self.layers[i](adj, outputs)#gcl
-            #     layer_list.append(outputs)
-            # else:#mgcl6y
-            # print(torch.cuda.memory_cached())
             attn_tensor = self.attn(outputs, domain_mask, rel_embs, mask)  # 每步一个attention
             attn_adj_list = [attn_adj.squeeze(1) for attn_adj in torch.split(attn_tensor, 1, dim=1)]
-            #t_output=outputs.clone()
-            #global_attn = self.global_attn(outputs, lab_emb, src_mask).unsqueeze(-1)
             outputs = self.layers[i](attn_adj_list,outputs,mask,domain_mask)
-            # global_attn = self.global_attn(torch.cat([t_output.unsqueeze(0),outputs.unsqueeze(0)],dim=0),lab_emb,src_mask)
-            # outputs = (global_attn.unsqueeze(-1)*outputs).sum(dim=0)
-            # outputs=(1-global_attn).mul(outputs)+global_attn.mul(t_output)
-            #outputs=self.layernorm(self.proj((outputs.unsqueeze(-2)+t_outputs.unsqueeze(1)).transpose(-2,-3)).view(batchsize,-1,self.mem_dim))
-
-            #self.analyseimporttance(outputs, mask, 0)
-            #layer_list.append(outputs)
-        # aggregate_out = torch.cat(layer_list, dim=2)
-
-        # dcgcn_output = self.aggregate_W(aggregate_out)
         return outputs, mask,gcn_inputs
-
-
-# class GraphGate(nn.Module):
-#     def __init__(self,opt,mem_dim):
-#         super().__init__()
-#         self.reset_gate = nn.Sequential(
-#             nn.Linear(mem_dim * 2, mem_dim),
-#             nn.Sigmoid()
-#         )
-#         self.update_gate = nn.Sequential(
-#             nn.Linear(mem_dim * 2, mem_dim),
-#             nn.Sigmoid()
-#         )
-#         self.transform = nn.Sequential(
-#             nn.Linear(mem_dim * 2, mem_dim),
-#             nn.Tanh()
-#         ).cuda()
-#
-#     def forward(self,state_out,state_in):
-#         zt = self.reset_gate(torch.cat((state_out,state_in),dim=-1))
-#         rt = self.update_gate(torch.cat((state_out,state_in),dim=-1))
-#         hhat= self.transform(torch.cat((state_out,rt.mul(state_in)),dim=-1))
-#         output=(1-zt).mul(state_in)+zt.mul(hhat)
-#         return output
-
 
 class GraphConvLayer(nn.Module):
     """ A GCN module operated on dependency graphs. """
@@ -537,15 +314,7 @@ class GraphConvLayer(nn.Module):
         self.layers = layers
         self.head_dim = self.mem_dim // self.layers
         self.gcn_drop = nn.Dropout(opt['gcn_dropout'])
-        # self.gru_drop = nn.Dropout(opt['gru_dropout'])
-
-        # linear transformation
         self.linear_output = nn.Linear(self.layers * self.mem_dim, self.mem_dim)
-        # self.domain_gate = self.message_gate = nn.Sequential(
-        #     nn.Linear(mem_dim, mem_dim),
-        #     nn.ReLU()
-        # )
-        # dcgcn block
         self.weight_list = nn.ModuleList()
         for i in range(self.layers):
             self.weight_list.append(nn.Linear((self.mem_dim), self.mem_dim))
@@ -577,10 +346,7 @@ class GraphConvLayer(nn.Module):
             frontoutputs = outputs.masked_fill(domain_mask, 0)
             backoutputs = rel.float().bmm(outputs)
             backoutputs = backoutputs.masked_fill(redomain_mask, 0)
-            # if l == self.layers - 1:
             domain_outputs = self.domain_gate(outputs.unsqueeze(2).repeat(1,1,domains,1).masked_fill(domain,-1e4).max(dim=1)[0].squeeze())
-            # domain_outputs = outputs.unsqueeze(2).repeat(1, 1, domains, 1).masked_fill(domain, -1e4).max(dim=1)[
-            #        0].squeeze()
             frontoutputs = frontoutputs + domain_id.bmm(domain_outputs)
             backoutputs = backoutputs + redomain_id.bmm(domain_outputs)
             frontor = torch.cat([frontoutputs, frontrel], dim=-1)
@@ -606,32 +372,6 @@ class GraphConvLayer(nn.Module):
 
         out = self.linear_output(gcn_outputs)
         out = out + gcn_inputs
-        # # gcn layer
-        # denom = adj.sum(2).unsqueeze(2) + 1
-        #
-        # outputs = gcn_inputs
-        # cache_list = [outputs]
-        # output_list = []
-        # #weighted_z,weughted_r=weighted
-        # for l in range(self.layers):
-        #     Ax = adj.bmm(outputs)#adj word emb count
-        #     # zt = self.reset_gate(torch.cat((Ax,outputs),dim=-1))
-        #     # rt = self.update_gate(torch.cat((Ax,outputs),dim=-1))
-        #     # hhat= self.gru_drop(self.transform(torch.cat((Ax,rt.mul(outputs)),dim=-1)))
-        #     # outputs=(1-zt).mul(outputs)+zt.mul(hhat)
-        #     AxW = self.weight_list[l](Ax)#all linear
-        #     AxW = AxW + self.weight_list[l](outputs)  # self loop AxW=linear(adj.outputs)+linear(outputs)
-        #     AxW = AxW / denom#normalization
-        #     gAxW = F.relu(AxW)
-        #     cache_list.append(gAxW)
-        #     outputs = torch.cat(cache_list, dim=2)
-        #     output_list.append(self.gcn_drop(gAxW))
-        #
-        # gcn_outputs = torch.cat(output_list, dim=2)
-        # gcn_outputs = gcn_outputs + gcn_inputs#resnet
-        #
-        # out = self.linear_output(gcn_outputs)
-
         return out
 
 
@@ -645,24 +385,11 @@ class MultiGraphConvLayer(nn.Module):
         self.layers = layers
         self.head_dim = self.mem_dim // self.layers
         self.heads = heads
-        # self.gate=gate
         self.gcn_drop = nn.Dropout(opt['gcn_dropout'])
 
-        # dcgcn layer
         self.Linear = nn.Linear(self.mem_dim * self.heads*self.layers, self.mem_dim)
         self.weight_list = nn.ModuleList()
-        # self.domain_gate=self.message_gate = nn.Sequential(
-        #     nn.Linear(mem_dim, mem_dim),
-        #     nn.ReLU()
-        # )
-
-
         self.active_list= nn.ModuleList()
-        #self.layer_aggre=nn.Linear(self.mem_dim*self.layers*self.heads,self.mem_dim)
-        # self.message_gate = nn.Sequential(
-        #     nn.Linear(mem_dim * 2, mem_dim),
-        #     nn.Tanh()
-        # )
 
         for i in range(self.heads):
             for j in range(self.layers):
@@ -672,102 +399,29 @@ class MultiGraphConvLayer(nn.Module):
         self.Linear = self.Linear.cuda()
         self.active_list=self.active_list.cuda()
 
-    # def keyword(self,inputs,mask):
-    #     indices=torch.cat((torch.linspace(0,inputs.shape[0]-1,inputs.shape[0]).long().unsqueeze(0),inputs.masked_fill(mask,-1e4).max(dim=-1)[0].argmax(dim=1).unsqueeze(0)),dim=0).cpu().numpy().tolist()
-    #     return inputs[tuple(indices)]
-
     def forward(self,adj_list,gcn_inputs,mask,domain_mask):
 
         multi_head_list = []
-        seq_len = gcn_inputs.shape[1]
-        batch_size = gcn_inputs.shape[0]
-        # domains=domain.shape[2]
-        # domain_mask=domain_id.sum(dim=-1).unsqueeze(-1)==1
-        # redomain_mask=redomain_id.sum(dim=-1).unsqueeze(-1)==1
         for i in range(self.heads):
             adj = adj_list[i]
-            # frontadj = adj.masked_select(depmap == 1).reshape(batch_size, seq_len)
-            # backadj = adj.transpose(-1, -2).masked_select(depmap == 1).reshape(batch_size, seq_len)
             denom = adj.sum(2).unsqueeze(2) + 1
             outputs = gcn_inputs
-            # cache_list = [outputs]
             output_list = []
             for l in range(self.layers):
-                # print('gcn:'+str(torch.cuda.memory_allocated()))
                 index = i * self.layers + l
-                # delta = torch.zeros_like(outputs)
-                # frontoutputs = outputs.masked_fill(domain_mask, 0)
-                # #frontoutputs=outputs
-                # backoutputs = rel.float().bmm(outputs)
-                # backoutputs = backoutputs.masked_fill(redomain_mask, 0)
-                # if l==0:
-                #     #domain_outputs = absMaxpool(outputs.unsqueeze(2).repeat(1,1,domains,1),domain,dim=1)
-                #     domain_outputs = outputs.unsqueeze(2).repeat(1, 1, domains, 1).masked_fill(domain,-constant.INFINITY_NUMBER).max(dim=1)[0]
-                #     #domain_outputs = outputs.unsqueeze(2).repeat(1, 1, domains, 1).masked_fill(domain, -1e4).max(dim=1)[0].squeeze()
-                #     frontoutputs = frontoutputs + domain_id.bmm(domain_outputs)
-                #     backoutputs = backoutputs + redomain_id.bmm(domain_outputs)
-                # frontor=torch.cat([frontoutputs,frontrel],dim=-1)
-                # frontdepadj = self.message_gate(frontor)
-                # fadj = frontadj.unsqueeze(-1).mul(frontdepadj)
-                # #delta += resrel.transpose(-1,-2).float().bmm(fadj.mul(frontoutputs))
-                # delta += rel.transpose(-1, -2).float().bmm(fadj.mul(frontoutputs))
-                # backor = torch.cat([backoutputs, backrel], dim=-1)
-                # backdepadj = self.message_gate(backor)
-                # badj = backadj.unsqueeze(-1).mul(backdepadj)
-                # delta += badj.mul(backoutputs)
-                #delta += resrel.float().bmm(badj.mul(backoutputs))
-                # if self.training:
-                #     drop_mask = (torch.rand((batch_size, seq_len)) > 0.5) * 1
-                #     delta = delta.mul(drop_mask.unsqueeze(-1))
-
-                #Ax = (adj.unsqueeze(-1).mul(outputs.unsqueeze(1)).masked_fill(domain_mask.unsqueeze(-1)==0,-constant.INFINITY_NUMBER)).max(dim=-2)[0]
                 Ax = adj.bmm(outputs)
                 AxW = self.weight_list[index](Ax)
                 AxW = AxW + self.weight_list[index](outputs)  # self loop
                 AxW = AxW / denom
                 outputs = self.active_list[i](AxW)
-                # cache_list.append(gAxW)
-                # outputs = torch.cat(cache_list, dim=2)
                 output_list.append(self.gcn_drop(outputs))
 
             gcn_outputs = torch.cat(output_list, dim=2)
-            # gcn_outputs = self.layer_aggre(gcn_outputs)
-            # gcn_outputs = gcn_outputs + gcn_inputs
-
             multi_head_list.append(gcn_outputs)
 
         final_output = torch.cat(multi_head_list, dim=2)
         out = self.Linear(final_output)
-        # keyword=self.keyword(out,mask)
         out = gcn_inputs + out
-
-        # multi_head_list = []
-        # for i in range(self.heads):
-        #     adj = adj_list[i]
-        #     denom = adj.sum(2).unsqueeze(2) + 1
-        #     outputs = gcn_inputs
-        #     cache_list = [outputs]
-        #     output_list = []
-        #     for l in range(self.layers):
-        #         index = i * self.layers + l
-        #         Ax = adj.bmm(outputs)
-        #         #Ax = self.gate(Ax,outputs)
-        #         AxW = self.weight_list[index](Ax)
-        #         AxW = AxW + self.weight_list[index](outputs)  # self loop
-        #         AxW = AxW / denom
-        #         gAxW = F.relu(AxW)
-        #         cache_list.append(gAxW)
-        #         outputs = torch.cat(cache_list, dim=2)
-        #         outputs=self.gcn_drop(gAxW)
-        #
-        #     gcn_ouputs = torch.cat(output_list, dim=2)
-        #     gcn_ouputs = gcn_ouputs + gcn_inputs
-        #
-        #     multi_head_list.append(outputs)
-        #
-        # final_output = torch.cat(multi_head_list, dim=2)
-        # out = self.Linear(final_output)
-
         return out
 
 
@@ -834,14 +488,8 @@ def stdzscore(data,dim=[-1],mask=None):
         mean=mean.unsqueeze(-1)
     std=std+1e-4
     res=(data-mean)/std
-    #detachres=res.detach()
-    # if torch.any(torch.isnan(detachres)):
-    #     res=data
     res = res.masked_fill(mask==0,0)
-    # res = res.masked_fill(mask.== 0, 0)
     return res
-
-
 
 def weightsoftmax(data, adj=None,mask=None):
     data = data - data.max(dim=-1)[0].unsqueeze(-1)
@@ -857,7 +505,6 @@ def weightsoftmax(data, adj=None,mask=None):
 def simplesoftmax(data,mask=None,dim=[-1],T=None):
     if mask is not None:
         data = data.masked_fill(mask == 0, -constant.INFINITY_NUMBER)
-        # data=data.masked_fill(mask.transpose(-1,-2)==0,-constant.INFINITY_NUMBER)
     m = data
     for d in dim:
         m=m.max(dim=d)[0]
@@ -877,8 +524,6 @@ def simplesoftmax(data,mask=None,dim=[-1],T=None):
 
 
 def attention(query, key, adj, mask=None, dropout=None):
-    # d_k = query.size(-1)
-    #scores=torch.matmul(query, key.transpose(-2, -1))
     scores = stdzscore(torch.matmul(query, key.transpose(-2, -1)),mask=mask,dim=[-1])
 
     thresh_mask=scores<0
@@ -887,11 +532,8 @@ def attention(query, key, adj, mask=None, dropout=None):
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
 
-    # scores = scores.masked_fill(adj.unsqueeze(dim=1)==0,-1e9)
-
     p_attn = weightsoftmax(scores, adj,mask)
     mask = ((mask==0)|thresh_mask|(adj==0).unsqueeze(1))
-    # mask = ((mask == 0) | (adj == 0).unsqueeze(1))
     p_attn=p_attn.masked_fill(mask,0)
     if dropout is not None:
         p_attn = dropout(p_attn)
@@ -913,46 +555,22 @@ class MultiHeadAttention(nn.Module):
         self.h = h
         self.W_K = nn.Linear(d_model, d_model)
         self.W_Q = nn.Linear(2*d_model, d_model)
-        # self.linears = clones(nn.Linear(d_model, d_model), 2)#2 layers of linears
-        # self.W_attn=nn.Linear(3*d_model,d_model)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, query, adj, rel, mask=None):
         if mask is not None:
             mask = (mask==0).unsqueeze(1)
         nbatches = query.size(0)
-        # maxlen=query.size(1)
-        # index=torch.LongTensor([[[i,j] for i in range(maxlen)] for j in range(maxlen)])
-        # input= torch.reshape(query[:,index],(nbatches,maxlen,maxlen,-1))
-        # input=torch.cat((input,rel),dim=-1)
-        # input=self.W_attn(input)
-        # del adj,rel,query
-        #
-        # input= zscore(input)
-        # #print(mask.shape)
-        # input=input.masked_fill(mask.unsqueeze(-1)==0,-1e4)
-        # #print(input.shape)
-        # attn=F.softmax(input,dim=2)
-        # del input,mask
-        # print(attn.shape)
         key = query.clone()
         query=torch.cat((query,rel),dim=-1)
         query = self.W_Q(query).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
         key = self.W_K(key).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-        # query, key = [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-        #                      for l, x in zip(self.linears, (query, key))]#*WQ,WK?
         attn = attention(query, key, adj, mask=mask, dropout=self.dropout)
         return attn
 
 def global_attention(query,key,T=None,mask=None,dropout=None):
     scores=torch.matmul(query,key).transpose(-1,-2).sum(dim=-2)
-    #selfmask = torch.eye(scores.shape[-1]).unsqueeze(0).repeat(scores.shape[0], 1, 1).cuda()
-    # scores = stdzscore(scores,mask=mask,dim=[-1])
-    # scores=scores.masked_fill(selfmask==1,-constant.INFINITY_NUMBER)
     p_attn = simplesoftmax(scores, mask,dim=[0],T=T)
-    # p_attn = p_attn.sum(dim=1)
-    # if dropout is not None:
-    #     p_attn = dropout(p_attn)
     return p_attn
 
 
@@ -963,9 +581,6 @@ class GlobalAttention(nn.Module):
         #self.W_K_global = nn.Linear(d_model, d_model)
         self.W_Q_global = nn.Linear(d_model, d_model)
         self.T=nn.Parameter(torch.cuda.FloatTensor([0.1]),requires_grad=True)
-
-        # self.linears = clones(nn.Linear(d_model, d_model), 2)#2 layers of linears
-        # self.W_attn=nn.Linear(3*d_model,d_model)
         self.d_model=d_model
         self.dropout = nn.Dropout(p=dropout)
 
@@ -975,26 +590,7 @@ class GlobalAttention(nn.Module):
             mask = mask.unsqueeze(0)
         mask=mask.squeeze()
         nbatches = query.size(1)
-        # maxlen=query.size(1)
-        # index=torch.LongTensor([[[i,j] for i in range(maxlen)] for j in range(maxlen)])
-        # input= torch.reshape(query[:,index],(nbatches,maxlen,maxlen,-1))
-        # input=torch.cat((input,rel),dim=-1)
-        # input=self.W_attn(input)
-        # del adj,rel,query
-        #
-        # input= zscore(input)
-        # #print(mask.shape)
-        # input=input.masked_fill(mask.unsqueeze(-1)==0,-1e4)
-        # #print(input.shape)
-        # attn=F.softmax(input,dim=2)
-        # del input,mask
-        # print(attn.shape)
         query = self.W_Q_global(query).view(2,nbatches, -1,self.d_model)
-        # key = self.W_K_global(lab_emb.transpose(-1,-2)).view(self.d_model,-1)
         key=lab_emb.view(self.d_model,-1)
-        # lab_emb=lab_emb.transpose(-1,-2)
-        # key = self.W_K(key).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-        # query, key = [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-        #                      for l, x in zip(self.linears, (query, key))]#*WQ,WK?
         attn = global_attention(query, key,mask=mask, dropout=self.dropout,T=self.T)
         return attn

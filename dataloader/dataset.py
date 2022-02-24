@@ -55,6 +55,7 @@ class BERTDataset(Dataset):
 
         output = {"bert_input": bert_input,
                   "bert_label": bert_label,
+
                   "segment_label": segment_label,
                   "is_next": is_next_label}
 

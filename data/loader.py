@@ -1,14 +1,11 @@
 """
 Data loader for TACRED json files.
 """
-
-import json
 import random
 import torch
 import numpy as np
 import copy
 import json
-from functools import reduce
 
 from utils import constant
 from model.tree import head_to_tree,head_to_treeEval,tree_to_adj
@@ -21,7 +18,6 @@ class DataLoader(object):
     def __init__(self, filenames, batch_size, opt, tokenizer:AlbertTokenizer, subj=None,obj=None,evaluation=False,corefresolve=False,is_aug=False,is_soft=False,randomchoice=False,limitner=None):
         self.batch_size = batch_size
         self.opt = opt
-        # self.vocab = vocab
         self.tokenizer = tokenizer
         self.eval = evaluation
         self.is_eval=False
@@ -34,10 +30,6 @@ class DataLoader(object):
         self.is_aug=is_aug
         self.randomchoice=randomchoice
         self.liminer=limitner
-        # with open('samples.json','r') as f:
-        #     self.ids=json.load(f)
-        # with open('samples_64.json','r') as f:
-        #     self.ids64=json.load(f)
         data=[]
         for filename in filenames:
             with open(filename,'r') as infile:
@@ -48,11 +40,9 @@ class DataLoader(object):
             self.aug_data_json = aug_data
             aug_data = self.preprocess(aug_data)
             self.aug_data = [aug_data[i:i + batch_size] for i in range(0, len(aug_data), batch_size)]
-        #data= self.preprocess(data,tokenizer, opt)
         data = self.preprocess(data)
         self.id2label = dict([(v, k) for k, v in self.label2id.items()])
         isOver=True
-        # shuffle for training
         if not evaluation:
             indices = list(range(len(data)))
             random.shuffle(indices)
@@ -61,10 +51,7 @@ class DataLoader(object):
             self.labels = [self.id2label[d[0][-2]] for d in data]
         else:
             self.labels=[d[0][-2] for d in data]
-        # self.distance= [d[0][-3] for d in data]
         self.num_examples = len(data)
-
-            # chunk into batches
 
         data_chunk = [data[i:i+batch_size] for i in range(0, len(data), batch_size)]
 
@@ -75,72 +62,9 @@ class DataLoader(object):
             self.isreallo =True
         else:
             self.isreallo=False
-            # if not evaluation:
-        #     data_chunk=[data_chunk[813]]
-        # else:
-        #     data_chunk=[]
         self.data = data_chunk
         self.train_data=[]
-        #self.label_weight=label_weight
         print("{} batches created for {}".format(len(data_chunk), filename))
-
-    # def simulatedatajson(self,datas):
-    #     augment_data=[]
-    #     for d in datas:
-    #         if len(augment_data) > 1000:
-    #             break
-    #         # subj_ner_list = list(constant.SUBJ_NER_TO_ID.keys())[2:]
-    #         # obj_ner_list = list(constant.OBJ_NER_TO_ID.keys())[2:]
-    #         # subj_entities,obj_entities=self.getEntitySpan(d)
-    #         count=0
-    #         ners=d['stanford_ner']
-    #         for subj_entity in subj_entities:
-    #             for obj_entity in obj_entities:
-    #                 if subj_entity[0] == obj_entity[0] or subj_entity[0] == d['subj_start'] and obj_entity[0] == d['obj_start']:
-    #                     continue
-    #                 else:
-    #                     rd=copy.deepcopy(d)
-    #                     rd['subj_start'] = subj_entity[0]
-    #                     rd['subj_end']=subj_entity[-1]
-    #                     rd['obj_start']=obj_entity[0]
-    #                     rd['obj_end']=obj_entity[-1]
-    #                     rd['subj_type']=ners[subj_entity[0]]
-    #                     rd['obj_type']=ners[obj_entity[0]]
-    #                     rd['id']=d['id']+"_"+str(count)
-    #                     count=count+1
-    #                     augment_data.append(rd)
-    #     return augment_data
-    #
-    # def getEntitySpan(self,d):
-    #     subj_entities = []
-    #     obj_entities = []
-    #     ners = d['stanford_ner']
-    #     self.data_index[d['id']] = d
-    #     i = 0
-    #     while (i < len(ners)):
-    #         ner = ners[i]
-    #         if ner == self.subj:
-    #             span = []
-    #             for w in range(i, len(ners)):
-    #                 if ners[w] == ner:
-    #                     span.append(w)
-    #                 else:
-    #                     if ner == self.obj:
-    #                         obj_entities.append(span)
-    #                         i = w
-    #                     subj_entities.append(span)
-    #                     break
-    #         elif ner == self.obj:
-    #             span = []
-    #             for w in range(i, len(ners)):
-    #                 if ners[w] == ner:
-    #                     span.append(w)
-    #                 else:
-    #                     i = w
-    #                     break
-    #             obj_entities.append(span)
-    #         i = i + 1
-    #     return subj_entities,obj_entities
 
     def preprocess(self, data):
         """ Preprocess the data and convert to ids. """
@@ -148,12 +72,6 @@ class DataLoader(object):
         rel_entities=[]
         count=0
         for d in data:
-            # if d['id']=='61b3a65fb91fbb9fcc5b':
-            #     continue
-            # if d['id'] not in self.ids:
-            #     continue
-            # if (d['id'] in self.ids)^(d['id'] not in self.ids64):
-            #     continue
             count+=1
             batch=self.packdata(d)
             subj_type=d['subj_type']
@@ -198,27 +116,12 @@ class DataLoader(object):
                 relation = self.label2id[relation]
         else:
             relation = d['soft_label']
-        # if self.subj is not None:
-        #     if d['subj_type']!=self.subj or d['obj_type']!=self.obj:
-        #         return []
-        #rev_relation = 0
-        # # if relation!=40:
-        #     continue
-        # rev_relation=self.findRevLabel(d['id'],"test")
-        # label_count[relation]+=1
-        # if d['id']=='61b3a65fb94b342e4da3':
-        #     batch=[]
-        #     return batch
         ad = copy.deepcopy(d)
         self.map_to_tokenize(d)
         rd = copy.deepcopy(d)
-        # if 'conj' in d['stanford_deprel']:
-        #     rd=self.removeconj(rd)
         head = [int(x) for x in d['stanford_head']]
         ners2id=constant.NER_TO_ID
         id2ners=dict([(v, k) for k, v in ners2id.items()])
-        # subj_id = list(range(ss,se+1))
-        # obj_id=list(range(os,oe+1))
         assert any([x == 0 for x in head])
         tokens = list(rd['token'])
         containDot=True
@@ -227,10 +130,6 @@ class DataLoader(object):
         if tokens[-1]!='.':
             containDot=False
         raw_tokens = copy.deepcopy(tokens)
-        # tokens = map_to_ids(tokens, vocab.word2id)
-        # pos = self.map_to_ids(rd['stanford_pos'], constant.POS_TO_ID)
-        # ner = self.map_to_ids(rd['stanford_ner'], constant.NER_TO_ID)
-        # deprel = self.map_to_ids(rd['stanford_deprel'], constant.DEPREL_TO_ID)
         pos = self.map_to_ids_glove(rd['stanford_pos'],constant.POS_TO_ID)
         ner = self.map_to_ids_glove(rd['stanford_ner'],constant.NER_TO_ID)
         deprel = self.map_to_ids_glove(rd['stanford_deprel'],constant.DEPREL_TO_ID)
@@ -247,10 +146,6 @@ class DataLoader(object):
             tree, domains, distance= head_to_tree(head, deprel, subj_id, obj_id)
 
             depmap, ret, rel, resrel, domain, domain_subj, domain_obj = tree_to_adj(l, domains, tree)
-            # subj_entities, obj_entities = self.getEntitySpan(rd)
-            # entities_span = list(set(subj_entities + obj_entities))
-            # entity_gragh=self.getEntityGragh(depmap, entities_span)
-            # anonymize tokens
 
             tokens[ss:se + 1] = ['SUBJ-' + rd['subj_type']] * (se - ss + 1)
             tokens[os:oe + 1] = ['OBJ-' + rd['obj_type']] * (oe - os + 1)
@@ -258,13 +153,7 @@ class DataLoader(object):
             raw_tokens[os:oe + 1] = zip(raw_tokens[os:oe + 1], (['RAWOBJ-' + d['obj_type']] * (oe - os + 1)))
 
             raw_tokens.append(distance)
-            subj_positions = get_positions(ss, se, l)
-            obj_positions = get_positions(os, oe, l)
-            # tokens = self.map_to_ids(tokens, self.vocab.word2id)
-            tokens = self.map_to_ids(tokens)
-            sdp_mask=1*(domain.T[1]==0)
         else:
-            #entityspans=self.getEntitySpan(d)
             src_subj=list(range(d['subj_start'],d['subj_end'] + 1))
             src_obj=list(range(d['obj_start'], d['obj_end'] + 1))
             if 'subj_list' in rd.keys():
@@ -273,28 +162,6 @@ class DataLoader(object):
             else:
                 subj_list=[src_subj]
                 obj_list=[src_obj]
-            # for span in subj_list:
-            #     entityspans.remove(subj_list)
-            # relpairs=[]
-            # # interpairs=[]
-            # # corefpairs=[]
-            # for subj in subj_list:
-            #     for obj in obj_list:
-            #         if subj!=obj:
-            #             relpairs.append([subj,obj])
-            # corefpairs.append()
-            # for s in entityspans:
-            #     for o in entityspans:
-            #         if s!=o:
-            #             if [s,o] not in relpairs:
-            #                 interpairs.append([s,o])
-            # entity_mask=[]
-            # coref_mask=[]
-            # for pair in interpairs:
-            #     mask=[0] * l
-            #     mask[pair[0]]=1
-            #     mask[pair[1]]=1
-            # subj_mask=[]
 
             def notinter(a,b):
                 return len(set(a)&set(b))==0
@@ -311,7 +178,6 @@ class DataLoader(object):
                 if deprel[i] in entity_dep:
                     entity_ids.append([i])
 
-
             entity_ner = [ners2id[d['subj_type']]]
             if d['obj_type'] in ners2id.keys():
                 entity_ner.append(ners2id[d['obj_type']])
@@ -323,121 +189,13 @@ class DataLoader(object):
             if 4 not in entity_ner:
                 entity_ner.append(4)
             tree, domains, distance,relpair,midhead,entity_chains,sdp_domain = head_to_treeEval(head, deprel, ner,pos,entity_ner,entity_pos,relpairs,build_mid=True)
-            # filterrelpair=[]
-            # for pair in relpairs:
-            #     subj=pair[0]
-            #     obj=pair[1]
-            #     if isinstance(subj,list):
-            #         subj_end=subj[-1]
-            #         subj_start=subj[0]
-            #         cur=subj_end
-            #         h=head[cur]-1
-            #         while (h<=subj_end and h>=subj_start):
-            #             cur=h
-            #             h = head[cur] - 1
-            #     layers=midhead[cur]
-            #     if isinstance(obj,list):
-            #         obj_end=obj[-1]
-            #         obj_start=obj[0]
-            #         cur=obj_end
-            #         h=head[cur]-1
-            #         while (h<=obj_end and h>=obj_start):
-            #             cur=h
-            #             h = head[cur] - 1
-            #     layero=midhead[cur]
-            #     if not(layero!=layers and (layers>obj_end or layers<obj_start) and (layero>subj_end or layero<subj_start)):
-            #         filterrelpair.append([subj,obj])
-            iscross=0
-            # if len(filterrelpair)==0:
-            #     iscross=1
 
-                # if relation!=0:
-                #     iscross=True
-                #     print("miss lit. su")
-                # return []
-            # else:
-            #     tree, domains, distance, relpair, midhead = head_to_treeEval(head, deprel, relpairs, build_mid=False)
-            depmap, ret, rel, resrel, domain,sdp_domain, domain_subj, domain_obj = tree_to_adj(l, domains, tree,entity_chains,sdp_domain)
-            # relpairs = rawrelpair
+            iscross=0
             obj_mask=[-1]*l
             subj_mask=[-1]*l
             aspect=[]
-            #relpairs=[rawrelpair]
             relpairs=[relpair]
 
-            # for pair in relpairs:
-            #     subj_span=pair[0]
-            #     obj_span=pair[1]
-            #     rtokens=copy.deepcopy(tokens)
-            #     rsubjmask=copy.deepcopy(subj_mask)
-            #     robjmask=copy.deepcopy(obj_mask)
-            #     bias=1
-            #     # newtokens=copy.deepcopy(rtokens)
-            #     special_ids = []
-            #     for i in range(len(tokens)+1):
-            #         special_ids.append([])
-            #     # special_ids[0]='[SEP]'
-            #     # newtokens.append('[SEP]')
-            #     for entity_pair in entity_chains[1:]:
-            #         entity_span=entity_pair[0]
-            #         entityner=ner[entity_span[0]]
-            #         if entityner==2:
-            #             entityner=3
-            #         special_ids[entity_span[0]].append('ENTITY_' + id2ners[entityner])
-            #         special_ids[entity_span[-1] + 1].insert(0, '[EOE]')
-            #     special_ids[subj_span[0]].append('SUBJ-' + rd['subj_type'])
-            #     special_ids[subj_span[-1] + 1].insert(0, '[ESB]')
-            #     # special_ids[obj_span[0]] = 'OBJ-' + rd['obj_type']
-            #     # special_ids[obj_span[-1]+1]='[EOB]'
-            #     # if rd['obj_type']!=self.liminer:
-            #     #     special_ids[obj_span[0]] = '<UNK>'
-            #     #     special_ids[obj_span[-1] + 1] = '[EOB]'
-            #     # else:
-            #     special_ids[obj_span[0]].append('OBJ-' + rd['obj_type'])
-            #     special_ids[obj_span[-1] + 1].insert(0, '[EOB]')
-            #     # special_ids[len(rtokens)]='[SEP]'
-            #     bias_map={}
-            #     newtokens=['[CLS]']
-            #     for i,token in enumerate(tokens):
-            #         newtokens+=special_ids[i]
-            #         bias_map[len(newtokens)]=i
-            #         newtokens.append(token)
-            #     if special_ids[-1]!=[]:
-            #         newtokens+=special_ids[-1]
-            #     #newtokens.append('[SEP]')
-            #     newtokens.remove('[CLS]')
-            #     rtokens=copy.deepcopy(newtokens)
-            #     rrawtokens = copy.deepcopy(newtokens)
-            #     # for entity_pair in entity_chains[1:]:
-            #     #     entity_span=entity_pair[0]
-            #     #     entityner=ner[entity_span[0]]
-            #     #     if entityner==2:
-            #     #         entityner=3
-            #     #
-            #     #     rtokens = rtokens[:entity_span[0]]+['ENTITY_' +id2ners[entityner]]+rtokens[entity_span[0]:entity_span[1]+1]+['ENTITY_' +id2ners[entityner]]+rtokens
-            #     #     rrawtokens[entity_span[0]:entity_span[-1] + 1] = zip(rrawtokens[entity_span[0]:entity_span[-1] + 1], (
-            #     #             ['ENTITY_' + id2ners[entityner]] * (entity_span[-1] - entity_span[0] + 1)))
-            #     #     bias+=2
-            #     # rtokens[subj_span[0]:subj_span[-1] + 1] = ['SUBJ-' + rd['subj_type']] * (subj_span[-1] - subj_span[0] + 1)
-            #     #rtokens[subj_span[0]:subj_span[-1] + 1] = ['ENTITY_' + rd['subj_type']] * (
-            #     #            subj_span[-1] - subj_span[0] + 1)
-            #
-            #     rsubjmask[subj_span[0]:subj_span[-1] + 1] = [0] * (subj_span[-1] - subj_span[0] + 1)
-            #     # rrawtokens[subj_span[0]:subj_span[-1] + 1] = zip(rrawtokens[subj_span[0]:subj_span[-1] + 1], (
-            #     #             ['RAWSUBJ-' + d['subj_type']] * (subj_span[-1] - subj_span[0] + 1)))
-            #     #rtokens[obj_span[0]:obj_span[-1] + 1] = ['OBJ-' + rd['obj_type']] * (obj_span[-1] - obj_span[0] + 1)
-            #     robjmask[obj_span[0]:obj_span[-1]+1]=[0]*(obj_span[-1]-obj_span[0]+1)
-            #     #rrawtokens[obj_span[0]:obj_span[-1] + 1] = zip(rrawtokens[obj_span[0]:obj_span[-1] + 1], (['RAWOBJ-' + d['obj_type']] * (obj_span[-1] - obj_span[0] + 1)))
-            #     rrawtokens.append(distance)
-            #     # rtokens = self.map_to_ids(rtokens, self.vocab.word2id)
-            #     rtokens = self.map_to_ids(rtokens)
-            #     mask = [1] * len(tokens)
-            #     if containDot:
-            #         mask[-1] = 0
-            #     aspect.append((rtokens, pos, rsubjmask, robjmask, ner, depmap, ret, rel, resrel, deprel, domain,sdp_domain,domain_subj,
-            #     domain_obj,bias_map, mask,sid,iscross, distance, relation,rrawtokens))
-
-            # if [src_subj,src_obj] not in relpairs:
             tree, domains, distanceraw,relpair,midhead,entity_chains,sdp_domain = head_to_treeEval(head, deprel,ner, pos,entity_ner,entity_pos,[[src_subj,src_obj]],build_mid=True)
             distance=distanceraw
             depmap, ret, rel, resrel, domain, sdp_domain,domain_subj, domain_obj = tree_to_adj(l, domains, tree,entity_chains,sdp_domain)
@@ -461,13 +219,8 @@ class DataLoader(object):
                 special_ids[entity_span[-1] + 1].insert(0, '[EOE]')
             special_ids[subj_span[0]].append('SUBJ-' + rd['subj_type'])
             special_ids[subj_span[-1] + 1].insert(0, '[ESB]')
-            # if rd['obj_type']!=self.liminer:
-            #     special_ids[obj_span[0]] = '<UNK>'
-            #     special_ids[obj_span[-1] + 1] = '[EOB]'
-            # else:
             special_ids[obj_span[0]].append('OBJ-' + rd['obj_type'])
             special_ids[obj_span[-1] + 1].insert(0, '[EOB]')
-            # special_ids[len(rtokens)] = '[SEP]'
             bias_map = {}
             newtokens=['[CLS]']
             for i, token in enumerate(tokens):
@@ -480,18 +233,9 @@ class DataLoader(object):
             newtokens.remove('[CLS]')
             rtokens = copy.deepcopy(newtokens)
             rrawtokens = copy.deepcopy(newtokens)
-
-            # rtokens[subj_span[0]:subj_span[-1] + 1] = ['ENTITY_' + rd['subj_type']] * (
-            #         subj_span[-1] - subj_span[0] + 1)
             rsubjmask[subj_span[0]:subj_span[-1] + 1] = [0] * (subj_span[-1] - subj_span[0] + 1)
-            # rrawtokens[subj_span[0]:subj_span[-1] + 1] = zip(rrawtokens[subj_span[0]:subj_span[-1] + 1], (
-            #         ['RAWSUBJ-' + d['subj_type']] * (subj_span[-1] - subj_span[0] + 1)))
-            # rtokens[obj_span[0]:obj_span[-1] + 1] = ['OBJ-' + rd['obj_type']] * (obj_span[-1] - obj_span[0] + 1)
             robjmask[obj_span[0]:obj_span[-1] + 1] = [0] * (obj_span[-1] - obj_span[0] + 1)
-            # rrawtokens[obj_span[0]:obj_span[-1] + 1] = zip(rrawtokens[obj_span[0]:obj_span[-1] + 1], (
-            #             ['RAWOBJ-' + d['obj_type']] * (obj_span[-1] - obj_span[0] + 1)))
             rrawtokens.append(distance)
-            # rtokens = self.map_to_ids(rtokens, self.vocab.word2id)
             rtokens = self.map_to_ids(rtokens)
             mask = [1] * len(rtokens)
             if containDot:
@@ -499,11 +243,6 @@ class DataLoader(object):
             aspect.append(
                 (rtokens, pos, rsubjmask, robjmask, ner, depmap, ret, rel, resrel, deprel, domain, sdp_domain,domain_subj,
                  domain_obj,bias_map, mask, sid, iscross,distance, relation, rrawtokens))
-        # if len(aspect)<2 or relation!=0:
-        #     return []
-        # subj_type = [constant.SUBJ_NER_TO_ID[d['subj_type']]]
-        # obj_type = [constant.OBJ_NER_TO_ID[d['obj_type']]]
-        # processed += [(tokens, pos, ner, deprel, head, subj_positions, obj_positions, subj_type, obj_type, length,relation)]
         batch= [aspect]
         return batch
 
@@ -637,11 +376,6 @@ class DataLoader(object):
         sent=sent.replace('´','[OWN]')
         sent=sent.replace('¯', '[OWN]')
         newtokens=self.tokenizer.tokenize(sent)
-        subj_start=-1
-        subj_end=-1
-        obj_start=-1
-        obj_end=-1
-
         pos=[]
         ner=[]
         deprel=[]
@@ -689,8 +423,6 @@ class DataLoader(object):
             for s in biasmap[i][1:]:
                 head.append(s)
                 deprel.append('wordinner')
-        # while('[OWN]' in newtokens):
-        #     newtokens.remove('[OWN]')
         d['subj_list']=subj_list
         d['obj_list']=obj_list
         d['subj_start']=subj_start
@@ -702,13 +434,6 @@ class DataLoader(object):
         d['stanford_head']=head
         d['stanford_deprel']=deprel
         d['token']=newtokens
-
-
-
-
-
-
-
 
     def getEntityGragh(self,depmap,spans):
         product=depmap
@@ -749,11 +474,6 @@ class DataLoader(object):
     def LabeledAugData(self, probs):
         for d in self.aug_data_json:
             d['relation'] = probs[d['id']]
-        # for d in self.data:
-        #     s_label = [0] * cate_nums
-        #     s_label[self.label2id[d['id']]] = 1
-        # with open('aug_train_data.json', 'w') as f:
-        #     json.dump(self.aug_data, f)
         model_file='dataset/'+self.subj+'_'+self.obj+'_train_data.json'
         print("save augment data at "+model_file)
         with open(model_file, 'w') as f:
@@ -761,12 +481,7 @@ class DataLoader(object):
 
     def simulate_data(self, id, aug_id, subj_start, subj_end, obj_start, obj_end):
         d = self.data_index[id]
-
-        sid = id
-        imp = 0
         relation = self.label2id[d['relation']]
-        # if sid in imps.keys():
-        #     imp = imps[sid]
         tokens = list(d['token'])
 
         raw_tokens = copy.deepcopy(tokens)
@@ -774,20 +489,13 @@ class DataLoader(object):
         ner = self.map_to_ids(d['stanford_ner'], constant.NER_TO_ID)
         deprel = self.map_to_ids(d['stanford_deprel'], constant.DEPREL_TO_ID)
         head = [int(x) for x in d['stanford_head']]
-        # subj_id = list(range(ss, se + 1))
-        # obj_id = list(range(os, oe + 1))
         l = len(tokens)
         subj_idx = list(range(subj_start, subj_end + 1))
         obj_idx = list(range(obj_start, obj_end + 1))
         tree, domains, distance = head_to_tree(head, deprel, subj_idx, obj_idx)
-        # if d['subj_start'] == subj_span[0] and d['subj_end'] == subj_span[-1] and d['obj_start'] == obj_span[0] and \
-        #         d['obj_end'] == obj_span[-1]:
-        #     continue
         raw_tokens.append(distance)
         subj_type = d['stanford_ner'][subj_start]
         obj_type = d['stanford_ner'][obj_start]
-        # if distance <= 6:
-        #     continue
         depmap, ret, rel, resrel, domain, domain_id, redomian_id = tree_to_adj(l, domains, tree)
 
         tokens[subj_start:subj_end + 1] = ['SUBJ-' + subj_type] * (subj_end - subj_start + 1)
@@ -802,46 +510,6 @@ class DataLoader(object):
 
         batch = [(tokens, pos, subj_positions, obj_positions, ner, depmap, ret, rel, resrel, deprel, domain, domain_id,
                   redomian_id,aug_id,distance,relation)]
-        # batch_size = len(batch)
-        # batch = list(zip(*batch))
-        # # assert len(batch) == 10
-        #
-        # # sort all fields by lens for easy RNN operations
-        # lens = [len(x) for x in batch[0]]
-        # batch, orig_idx = sort_all(batch, lens)
-        # lens = sorted(lens, reverse=True)
-        # maxlen = lens[0]
-        # domains = [b.shape[1] for b in batch[8]]
-        # max_domain = max(domains)
-        # words=batch[0]
-        # words = get_long_tensor(words, batch_size)
-        # masks = torch.eq(words, 0)
-        # pos = get_long_tensor(batch[1], batch_size)
-        # ner = get_long_tensor(batch[4], batch_size)
-        #
-        # depmap = padmat(batch[5], maxlen, maxlen)
-        # for i in range(batch_size):
-        #     depmap[i][len(tokens):, 0] = 1
-        # ret = padmat(batch[6], maxlen, maxlen)
-        # rel = padmat(batch[7], maxlen, maxlen)
-        # resrel = padmat(batch[8], maxlen, maxlen)
-        # deprel = get_long_tensor(batch[9], batch_size)
-        # domain = padmat(batch[10], maxlen, max_domain)
-        # domain_id = padmat(batch[11], maxlen, max_domain)
-        # redomain_id = padmat(batch[12], maxlen, max_domain)
-        # # head = get_long_tensor(batch[4], batch_size)
-        # subj_positions = get_long_tensor(batch[2], batch_size)
-        # obj_positions = get_long_tensor(batch[3], batch_size)
-        # # subj_type = get_long_tensor(batch[7], batch_size)
-        # # obj_type = get_long_tensor(batch[8], batch_size)
-        # length = torch.LongTensor(batch[13])
-        # raw_tokens = batch[14]
-        # rels = torch.LongTensor(batch[15])
-        # ids = batch[16]
-        # imp = batch[17]
-        # return (
-        # words, masks, pos, subj_positions, obj_positions, ner, depmap, ret, rel, resrel, deprel, domain, domain_id,
-        # redomain_id, rels,orig_idx, length, raw_tokens, ids, imp, batch[16])
         return batch
 
     def convert_token(self,token):
@@ -967,13 +635,7 @@ class DataLoader(object):
             idx=torch.cat((torch.LongTensor(ridx).unsqueeze(0),torch.LongTensor(cidx).unsqueeze(0)),dim=0)
             bms.append(torch.sparse_coo_tensor(idx,torch.ones(len(bm)),(maxlen,maxlen)).to_dense().unsqueeze(0))
         bias_maps=torch.cat(bms,dim=0)
-        # bias_map = padmat(bias_map, maxlen, maxlen)
-
         sdp_mask = get_long_tensor(batch[15],batch_size,max_seq_length)
-        # head = get_long_tensor(batch[4], batch_size)
-
-        # subj_type = get_long_tensor(batch[7], batch_size)
-        # obj_type = get_long_tensor(batch[8], batch_size)
         length=[]
         rels=[]
         sid=[]
@@ -1046,37 +708,10 @@ class DataLoader(object):
     def NoAugData(self):
         return len(self.aug_data)==0
 
-    # def LabeledAugData(self,probs):
-    #     cate_nums=len(constant.LABEL_TO_ID)
-    #
-    #     for d in self.aug_data_json:
-    #         d['relation']=probs[d['id']]
-    #     # for d in self.data_json:
-    #     #     s_label=[0]*cate_nums
-    #     #     s_label[self.label2id[d['relation']]]=1
-    #     #     d['soft_label']=s_label
-    #     data=self.aug_data_json
-    #     # with open('aug_train_data.json','w') as f:
-    #     #     json.dump(self.aug_data_json,f)
-    #     with open('soft_train_data.json','w') as f:
-    #         json.dump(data,f)
-
-
-
     def map_to_ids(self,tokens):
         tokens.insert(0, '[CLS]')
         tokens.append('[SEP]')
-        # tokens = [self.convert_token(t) for t in tokens]
-        # sent=" ".join(tokens)
-        # tokens=self.tokenizer.tokenize(sent)
         ids = self.tokenizer.convert_tokens_to_ids(tokens)
-        # tokens.insert(0, '[SEP]')
-        # tokens.append('[SEP]')
-        # tokens=[self.convert_token(t) for t in tokens]
-        # sent=" ".join(tokens)
-        # tokens=self.tokenizer.tokenize(sent)
-        # ids=self.tokenizer.encode(sent)
-        # ids=self.tokenizer.convert_tokens_to_ids(tokens)
         return ids
 
     def map_to_ids_glove(self,tokens,vocab):
@@ -1103,21 +738,13 @@ def get_long_tensor(tokens_list, batch_size,maxseq):
             tokens[i, :len(s)] = torch.LongTensor(s)
     return tokens
 
-# def sort_all(batch, lens):
-#     """ Sort all fields by descending order of lens, and return the original indices. """
-#     unsorted_all = [lens] + [range(len(lens))] + list(batch)
-#     sorted_all = [list(t) for t in zip(*sorted(zip(*unsorted_all), reverse=True))]
-#return sorted_all[2:], sorted_all[1]
-
 def sort_all(batch, lens):
     """ Sort all fields by descending order of lens, and return the original indices. """
     unsorted_all = [lens] + [range(len(lens))] + [batch]
     sorted_all = [list(t) for t in zip(*sorted(zip(*unsorted_all), reverse=True))]
     return sorted_all[2], sorted_all[1]
 
-
 def word_dropout(tokens, dropout):
     """ Randomly dropout tokens (IDs) and replace them with <UNK> tokens. """
     return [constant.UNK_ID if x != constant.UNK_ID and np.random.random() < dropout \
             else x for x in tokens]
-
