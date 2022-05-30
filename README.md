@@ -8,7 +8,7 @@ This code repo contains the preprocess, training, inference and evaluation code 
 * CUDA 9.2
 
 ## Perparation
-First, download and unzip RE dataset from [LDC](https://catalog.ldc.upenn.edu/LDC2018T24).
+First, download and unzip TACRED dataset from [LDC](https://catalog.ldc.upenn.edu/LDC2018T24).
 
 ## Training
 Please run 
